@@ -1,0 +1,33 @@
+{% extends 'layout.html' %} 
+
+{% block content %}
+
+<div id="MainDiv" class="container">
+    <h1>Welcome to MaxRox</h1>
+    <p class="mt-5">When gaming calls, we are the way to go!</p>
+
+    <table class="table mt-5">
+        <thead>
+            <tr>
+                <th scope="col">Game Name</th>
+                <th scope="col">Genre</th>
+                <th scope="col">Price</th>
+                <th scope="col">Buy</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for game in games %}
+            <tr>
+                <td>{{ game.game_name }}</td>
+                <td>{{ game.genre }}</td>
+                <td>USD {{ game.price }}</td>
+                <td>
+                    <button type="button" class="btn btn-warning">Buy</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
