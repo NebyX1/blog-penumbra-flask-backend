@@ -2,32 +2,24 @@
 
 {% block content %}
 
-<div id="MainDiv" class="container">
-    <h1>Welcome to MaxRox</h1>
-    <p class="mt-5">When gaming calls, we are the way to go!</p>
+<div class="container div-height mt-5 mb-5">
+    <h1>Bienvenido al Admin Panel</h1>
+    <p class="mt-5">Estos son nuestros últimos posts</p>
 
-    <table class="table mt-5">
-        <thead>
-            <tr>
-                <th scope="col">Game Name</th>
-                <th scope="col">Genre</th>
-                <th scope="col">Price</th>
-                <th scope="col">Buy</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for game in games %}
-            <tr>
-                <td>{{ game.game_name }}</td>
-                <td>{{ game.genre }}</td>
-                <td>USD {{ game.price }}</td>
-                <td>
-                    <button type="button" class="btn btn-warning">Buy</button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="row mt-5">
+        {% for post in posts[:3] %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <img src="{{ post.image }}" class="card-img-top" alt="{{ post.title }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ post.title }}</h5>
+                    <p class="card-text">{{ post.content[:100] }}...</p>
+                    <p class="card-text"><small class="text-muted">By {{ post.author }}</small></p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 
 {% endblock %}

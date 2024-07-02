@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, redirect, url_for, flash, jsonify, request
 from flask_login import login_user, logout_user, login_required, LoginManager
 from helpers.forms import LoginForm, PostForm
 from database.models import Admin, Post
@@ -16,7 +16,7 @@ def init_app(app: Flask):
     @app.route("/index")
     @app.route("/home")
     def home_page():
-        posts = Post.query.all()
+        posts = Post.query.order_by(Post.date.desc()).all()
         return render_template('index.html', posts=posts)
 
     # Página de inicio de sesión, maneja el login de administradores
@@ -40,10 +40,10 @@ def init_app(app: Flask):
         flash('You are now Logged Out, See you soon!', category='info')
         return redirect(url_for('home_page'))
 
-    # Página de administración, permite a los administradores crear, modificar y eliminar posts
-    @app.route("/admin", methods=['GET', 'POST'])
+    # Página para crear un nuevo post
+    @app.route("/admin/create", methods=['GET', 'POST'])
     @login_required
-    def admin_page():
+    def create_post():
         form = PostForm()
         if form.validate_on_submit():
             try:
@@ -59,10 +59,59 @@ def init_app(app: Flask):
             except Exception as e:
                 db.session.rollback()
                 flash(f'Error creating post: {str(e)}', category='error')
-            return redirect(url_for('admin_page'))
+            return redirect(url_for('create_post'))
 
-        posts = Post.query.all()
-        return render_template('admin.html', form=form, posts=posts)
+        return render_template('create-post.html', form=form)
+
+    # Página para borrar un post existente con paginación
+    @app.route("/admin/erase", methods=['GET', 'POST'])
+    @login_required
+    def erase_post():
+        page = request.args.get('page', 1, type=int)
+        posts = Post.query.order_by(Post.date.desc()).paginate(page=page, per_page=20)
+        return render_template('erase-post.html', posts=posts)
+
+    # Endpoint para eliminar un post
+    @app.route("/admin/delete_post/<int:post_id>", methods=['POST'])
+    @login_required
+    def delete_post(post_id):
+        post = Post.query.get(post_id)
+        if post:
+            db.session.delete(post)
+            db.session.commit()
+            flash('Post deleted successfully', category='success')
+        else:
+            flash('Post not found', category='error')
+        return redirect(url_for('erase_post'))
+
+    # Página para listar los posts a editar
+    @app.route("/admin/edit", methods=['GET'])
+    @login_required
+    def edit_post():
+        page = request.args.get('page', 1, type=int)
+        posts = Post.query.order_by(Post.date.desc()).paginate(page=page, per_page=20)
+        return render_template('edit-post.html', posts=posts)
+
+    # Página para modificar un post existente
+    @app.route("/admin/mod_post/<int:post_id>", methods=['GET', 'POST'])
+    @login_required
+    def mod_post(post_id):
+        post = Post.query.get(post_id)
+        if not post:
+            flash('Post not found', category='error')
+            return redirect(url_for('edit_post'))
+
+        form = PostForm(obj=post)
+        if form.validate_on_submit():
+            post.author = form.author.data
+            post.title = form.title.data
+            post.image = form.image.data
+            post.content = form.content.data
+            db.session.commit()
+            flash('Post updated successfully', category='success')
+            return redirect(url_for('edit_post'))
+
+        return render_template('mod-post.html', form=form, post=post)
 
     # Maneja el error 404
     @app.errorhandler(404)
@@ -78,40 +127,6 @@ def init_app(app: Flask):
     @login_manager.unauthorized_handler
     def unauthorized():
         return render_template('forbidden.html')
-
-    # Endpoint para eliminar un post
-    @app.route("/admin/delete_post/<int:post_id>", methods=['POST'])
-    @login_required
-    def delete_post(post_id):
-        post = Post.query.get(post_id)
-        if post:
-            db.session.delete(post)
-            db.session.commit()
-            flash('Post deleted successfully', category='success')
-        else:
-            flash('Post not found', category='error')
-        return redirect(url_for('admin_page'))
-
-    # Endpoint para editar un post
-    @app.route("/admin/edit_post/<int:post_id>", methods=['GET', 'POST'])
-    @login_required
-    def edit_post(post_id):
-        post = Post.query.get(post_id)
-        if not post:
-            flash('Post not found', category='error')
-            return redirect(url_for('admin_page'))
-
-        form = PostForm(obj=post)
-        if form.validate_on_submit():
-            post.author = form.author.data
-            post.title = form.title.data
-            post.image = form.image.data
-            post.content = form.content.data
-            db.session.commit()
-            flash('Post updated successfully', category='success')
-            return redirect(url_for('admin_page'))
-
-        return render_template('edit_post.html', form=form, post=post)
 
     # Endpoint API para obtener todos los posts
     @app.route("/api/posts", methods=['GET'])

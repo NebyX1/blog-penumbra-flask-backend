@@ -10,11 +10,11 @@ class LoginForm(FlaskForm):
 
 
 class PostForm(FlaskForm):
-    author = StringField(label="Author", validators=[InputRequired(), Length(min=1, max=100)])
-    title = StringField(label="Title", validators=[InputRequired(), Length(min=1, max=250)])
-    image = StringField(label="Image URL", validators=[InputRequired(), Length(max=250)])
-    content = TextAreaField(label="Content", validators=[InputRequired()])
-    submit = SubmitField(label="Create Post")
+    author = StringField(label="Autor", validators=[InputRequired(), Length(min=1, max=100)])
+    title = StringField(label="Título", validators=[InputRequired(), Length(min=1, max=250)])
+    image = StringField(label="URL de Imagen", validators=[InputRequired(), Length(max=250)])
+    content = TextAreaField(label="Contenido", validators=[InputRequired()])
+    submit = SubmitField(label="Crear Nuevo Post")
 
     def validate_image(form, field):
         if not field.data.startswith(('http://', 'https://')):

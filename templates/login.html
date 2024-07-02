@@ -1,6 +1,6 @@
 {% extends 'layout.html' %} {% block content %}
 
-<div class="container text-center">
+<div class="container text-center div-height">
   <form method="POST" class="form-sigin" style="color: white">
     {{ form.hidden_tag() }}
 
@@ -16,7 +16,7 @@
       placeholder="Password") }}
     </div>
 
-    <div class="mb-4">{{ form.submit(class="btn btn-lg btn-primary") }}</div>
+    <div class="mb-4">{{ form.submit(class="btn btn-lg btn-dark") }}</div>
   </form>
 </div>
 
