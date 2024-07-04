@@ -1,0 +1,8 @@
+Paso 1: Iniciar las migraciones
+    >flask db init
+
+Paso 2: Crear las migraciones
+    >flask db migrate -m "Say something here"
+
+Paso 3: Efectivizar las migraciones
+    >flask db upgrade

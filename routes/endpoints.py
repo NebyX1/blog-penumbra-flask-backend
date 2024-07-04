@@ -50,6 +50,8 @@ def init_app(app: Flask):
                 new_post = Post(
                     author=form.author.data,
                     title=form.title.data,
+                    category=form.category.data,
+                    slug=form.slug.data,
                     image=form.image.data,
                     content=form.content.data
                 )
@@ -92,7 +94,7 @@ def init_app(app: Flask):
         posts = Post.query.order_by(Post.date.desc()).paginate(page=page, per_page=20)
         return render_template('edit-post.html', posts=posts)
 
-    # Página para modificar un post existente
+    # Página para editar un post
     @app.route("/admin/mod_post/<int:post_id>", methods=['GET', 'POST'])
     @login_required
     def mod_post(post_id):
@@ -103,13 +105,20 @@ def init_app(app: Flask):
 
         form = PostForm(obj=post)
         if form.validate_on_submit():
-            post.author = form.author.data
-            post.title = form.title.data
-            post.image = form.image.data
-            post.content = form.content.data
-            db.session.commit()
-            flash('Post updated successfully', category='success')
-            return redirect(url_for('edit_post'))
+            # Validar la unicidad del slug
+            existing_post = Post.query.filter_by(slug=form.slug.data).first()
+            if existing_post and existing_post.id != post.id:
+                flash('Slug must be unique. This slug is already in use.', category='error')
+            else:
+                post.author = form.author.data
+                post.title = form.title.data
+                post.category = form.category.data
+                post.slug = form.slug.data
+                post.image = form.image.data
+                post.content = form.content.data
+                db.session.commit()
+                flash('Post updated successfully', category='success')
+                return redirect(url_for('edit_post'))
 
         return render_template('mod-post.html', form=form, post=post)
 
@@ -138,6 +147,14 @@ def init_app(app: Flask):
     @app.route("/api/posts/<int:post_id>", methods=['GET'])
     def get_post(post_id):
         post = Post.query.get(post_id)
+        if post:
+            return jsonify(post.serialize())
+        else:
+            return jsonify({"error": "Post not found"}), 404
+
+    @app.route("/api/posts/slug/<string:slug>", methods=['GET'])
+    def get_post_by_slug(slug):
+        post = Post.query.filter_by(slug=slug).first()
         if post:
             return jsonify(post.serialize())
         else:
