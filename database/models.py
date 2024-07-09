@@ -43,3 +43,27 @@ class Post(db.Model):
             "title": self.title,
             "content": self.content
         }
+
+
+class Journal(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    number = db.Column(db.Integer, nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    title = db.Column(db.String(250), nullable=False)
+    url = db.Column(db.String(250), nullable=False)
+    image = db.Column(db.String(250), nullable=True)
+
+    def __repr__(self):
+        return "<Journal %r>" % self.id
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "date": self.date.isoformat(),
+            "number": self.number,
+            "year": self.year,
+            "title": self.title,
+            "url": self.url,
+            "image": self.image
+        }

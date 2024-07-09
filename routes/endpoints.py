@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, jsonify, request
 from flask_login import login_user, logout_user, login_required, LoginManager
-from helpers.forms import LoginForm, PostForm
-from database.models import Admin, Post
+from helpers.forms import LoginForm, PostForm, JournalForm
+from database.models import Admin, Post, Journal
 from database.db import db
 
 login_manager = LoginManager()
@@ -17,7 +17,8 @@ def init_app(app: Flask):
     @app.route("/home")
     def home_page():
         posts = Post.query.order_by(Post.date.desc()).all()
-        return render_template('index.html', posts=posts)
+        journals = Journal.query.order_by(Journal.date.desc()).all()
+        return render_template('index.html', posts=posts, journals=journals)
 
     # Página de inicio de sesión, maneja el login de administradores
     @app.route("/login", methods=['GET', 'POST'])
@@ -58,10 +59,15 @@ def init_app(app: Flask):
                 db.session.add(new_post)
                 db.session.commit()
                 flash('Post created successfully', category='success')
+                return redirect(url_for('create_post'))
             except Exception as e:
                 db.session.rollback()
-                flash(f'Error creating post: {str(e)}', category='error')
-            return redirect(url_for('create_post'))
+                flash(f'Error creating post: {str(e)}', category='danger')
+        else:
+            # Flash form validation errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f"Error in the {getattr(form, field).label.text} field - {error}", category='danger')
 
         return render_template('create-post.html', form=form)
 
@@ -122,6 +128,88 @@ def init_app(app: Flask):
 
         return render_template('mod-post.html', form=form, post=post)
 
+    # Página para crear un nuevo journal
+    @app.route("/admin/create-journal", methods=['GET', 'POST'])
+    @login_required
+    def create_journal():
+        form = JournalForm()
+        if form.validate_on_submit():
+            try:
+                new_journal = Journal(
+                    date=form.date.data,
+                    number=form.number.data,
+                    year=form.year.data,
+                    title=form.title.data,
+                    url=form.url.data,
+                    image=form.image.data
+                )
+                db.session.add(new_journal)
+                db.session.commit()
+                flash('Journal created successfully', category='success')
+                return redirect(url_for('create_journal'))
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error creating journal: {str(e)}', category='danger')
+        else:
+            # Flash form validation errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    flash(f"Error in the {getattr(form, field).label.text} field - {error}", category='danger')
+
+        return render_template('create-journal.html', form=form)
+
+    # Página para borrar un journal existente
+    @app.route("/admin/erase-journal", methods=['GET', 'POST'])
+    @login_required
+    def erase_journal():
+        page = request.args.get('page', 1, type=int)
+        journals = Journal.query.order_by(Journal.date.desc()).paginate(page=page, per_page=20)
+        return render_template('erase-journal.html', journals=journals)
+
+    # Endpoint para eliminar un journal
+    @app.route("/admin/delete_journal/<int:journal_id>", methods=['POST'])
+    @login_required
+    def delete_journal(journal_id):
+        journal = Journal.query.get(journal_id)
+        if journal:
+            db.session.delete(journal)
+            db.session.commit()
+            flash('Journal deleted successfully', category='success')
+        else:
+            flash('Journal not found', category='error')
+        return redirect(url_for('erase_journal'))
+
+    # Página para editar un journal
+    @app.route("/admin/edit-journal", methods=['GET'])
+    @login_required
+    def edit_journal():
+        page = request.args.get('page', 1, type=int)
+        journals = Journal.query.order_by(Journal.date.desc()).paginate(page=page, per_page=20)
+        return render_template('edit-journal.html', journals=journals)
+
+    # Página para modificar un journal existente
+    @app.route("/admin/mod_journal/<int:journal_id>", methods=['GET', 'POST'])
+    @login_required
+    def mod_journal(journal_id):
+        journal = Journal.query.get(journal_id)
+        if not journal:
+            flash('Journal not found', category='error')
+            return redirect(url_for('mod-journal'))
+
+        form = JournalForm(obj=journal)
+        if form.validate_on_submit():
+            journal.date = form.date.data
+            journal.number = form.number.data
+            journal.year = form.year.data
+            journal.title = form.title.data
+            journal.url = form.url.data
+            journal.image = form.image.data
+            db.session.commit()
+            flash('Journal updated successfully', category='success')
+            return redirect(url_for('edit_journal'))
+
+        return render_template('mod-journal.html', form=form, journal=journal)
+
     # Maneja el error 404
     @app.errorhandler(404)
     def not_found(e):
@@ -159,3 +247,18 @@ def init_app(app: Flask):
             return jsonify(post.serialize())
         else:
             return jsonify({"error": "Post not found"}), 404
+
+    # Endpoint API para obtener todos los journals
+    @app.route("/api/journals", methods=['GET'])
+    def get_journals():
+        journals = Journal.query.all()
+        return jsonify([journal.serialize() for journal in journals])
+
+    # Endpoint API para obtener un journal por ID
+    @app.route("/api/journals/<int:journal_id>", methods=['GET'])
+    def get_journal(journal_id):
+        journal = Journal.query.get(journal_id)
+        if journal:
+            return jsonify(journal.serialize())
+        else:
+            return jsonify({"error": "Journal not found"}), 404

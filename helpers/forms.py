@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField, TextAreaField
-from wtforms.validators import InputRequired, Length, ValidationError
-from database.models import Post  # Asegúrate de importar tu modelo Post
+from wtforms import StringField, IntegerField, DateTimeField, SubmitField, PasswordField, TextAreaField
+from wtforms.validators import InputRequired, Length, URL, NumberRange, ValidationError
+from database.models import Post, Journal  # Asegúrate de importar tus modelos Post y Journal
 
 
 class LoginForm(FlaskForm):
@@ -21,4 +21,18 @@ class PostForm(FlaskForm):
 
     def validate_image(form, field):
         if not field.data.startswith(('http://', 'https://')):
-            raise ValidationError('Invalid URL format for image. Must start with http:// or https://')
+            raise ValidationError('Formato de URL no válido para imagen. Debe de empezar con http:// or https://')
+
+
+class JournalForm(FlaskForm):
+    date = DateTimeField(label="Fecha", validators=[InputRequired()], format='%Y-%m-%dT%H:%M')  # Use the format for datetime-local input
+    number = IntegerField(label="Número", validators=[InputRequired(), NumberRange(min=1)])
+    year = IntegerField(label="Año", validators=[InputRequired(), NumberRange(min=2000, max=2100)])
+    title = StringField(label="Título", validators=[InputRequired(), Length(min=1, max=250)])
+    url = StringField(label="URL", validators=[InputRequired(), Length(max=250), URL()])
+    image = StringField(label="URL de Imagen", validators=[Length(max=250), URL()])
+    submit = SubmitField(label="Crear Nuevo Journal")
+
+    def validate_image(form, field):
+        if field.data and not field.data.startswith(('http://', 'https://')):
+            raise ValidationError('Formato de URL no válido para imagen. Debe de empezar con http:// o https://')
